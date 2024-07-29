@@ -2,6 +2,7 @@
 $errors_email = [];
 $errors_fio = [];
 $errors_phone = [];
+$success = false;
 
 if($_SERVER["REQUEST_METHOD"] == "POST"){
     $fio = trim($_POST['inputFIO']);
@@ -9,20 +10,14 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
     $phone = trim($_POST['inputPhone']);
     $city = trim($_POST['city']);
 
-    echo $email;
-    echo $fio;
-    echo $phone;
-    echo $city;
-
-
     if ($email == '') {
         $errors_email[] = "Email не может быть пустым.";
     }elseif(!filter_var($email, FILTER_VALIDATE_EMAIL)){
         $errors_email[] = "Неверный формат email.";
     }
 
-    if ($phone == '') {
-        $errors_fio[] = "Телефон не может быть пустым.";
+    if ($fio == '') {
+        $errors_fio[] = "ФИО не может быть пустым.";
     } elseif (!preg_match('/^([А-Я][а-яё]{1,30})(\s[А-Я][а-яё]{1,30})*(\s)?$/u', $fio, $matches)) {
         $errors_fio[] = "Неверное ФИО. Пример для заполнения: Иванов Иван Иванович"; 
     }
@@ -33,27 +28,37 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
         $errors_phone[] = "Неверный формат телефона."; 
     }
 
-    $link = new mysqli("localhost", "root", "", "intensaTestDB");
-    if ($link == false){
-        print("Ошибка: Невозможно подключиться к MySQL " . mysqli_connect_error());
-    }
-    else {
-        print("Соединение установлено успешно");
+    $conn = new mysqli("localhost", "root", "", "intensaTestDB");
+    if ($conn == false){
+        print("Ошибка: Невозможно подключиться" . mysqli_connect_error());
     }
 
-    // if($errors_email === '' && $errors_fio === '' && $errors_phone === '' && $city !== ''){
+    if (empty($errors_email) && empty($errors_fio) && empty($errors_phone) && $city !== '') {
+        $sql = "INSERT INTO contacts (FIO, email, phone, city) VALUES ('$fio', '$email', '$phone', '$city')";
 
-    // }
+        $conn->query($sql);
+
+        $success = true;
+        header("Location: index.php?success=1");
+
+        // if($conn->query($sql)){
+        //     echo "Данные успешно добавлены";
+        // } else{
+        //     echo "Ошибка: " . $conn->error;
+        // }
+    }
+
+    $conn->close();
 }
 
 ?>
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Контакты</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <link href="css/style.css" rel="stylesheet">
 </head>
@@ -66,10 +71,10 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
             <div class="collapse navbar-collapse" id="navbarSupportedContent">
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                     <li class="nav-item">
-                        <a class="nav-link active" aria-current="page" href="#">Контакты</a>
+                        <a class="nav-link active" aria-current="page" href="index.php">Контакты</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#">Список</a>
+                        <a class="nav-link" href="/cotact_list.php">Список</a>
                     </li>
                 </ul>
             </div>
@@ -77,6 +82,9 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
     </nav>
     <div class="container">
         <h1 class="title">Оставить заявку</h1>
+        <div <?php echo isset($_GET["success"]) ? 'class="alert alert-success"' : 'class="alert alert-success display-none"'?> role="alert">
+            Данные успешно отправлены
+        </div>
         <form class="contacts" method="post">
             <div class="mb-3">
                 <label for="inputFIO" class="form-label">ФИО</label>
@@ -117,7 +125,6 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
             <div class="mb-3">
                 <label for="city" class="form-label">Город</label>
                 <select class="form-select" id="city" name="city">
-                    <!-- <option selected>Город</option> -->
                     <option selected value="Москва">Москва</option>
                     <option value="Санкт-Петербург">Санкт-Петербург</option>
                     <option value="Тула">Тула</option>
@@ -129,14 +136,11 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
             </div>
         </form>
     </div>
-    
-    
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
     <script src="https://unpkg.com/imask"></script>
     <script>
         const element = document.getElementById('inputPhone');
-        console.log(element);
         const maskOptions = {
             mask: '+{7} 000 000-00-00'
         };
