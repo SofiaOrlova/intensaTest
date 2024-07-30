@@ -1,93 +1,5 @@
 <?php
-$fioDB = [];
-$emailDB = [];
-$phoneDB = [];
-$cityDB = [];
-$conn = new mysqli("localhost", "root", "", "intensaTestDB");
-if ($conn == false){
-    print("Ошибка: Невозможно подключиться" . mysqli_connect_error());
-}
-else {
-    if($_SERVER["REQUEST_METHOD"] == "GET"){
-        $selectedCity = isset($_GET['city']) ? $_GET['city'] : '';
-        // $selectedCity = $conn->real_escape_string($selectedCity);
-        if ($selectedCity) {
-            $query = "SELECT * FROM contacts WHERE city = '$selectedCity'";
-        } else {
-            $query = "SELECT * FROM contacts ";
-        }
-
-        $result = mysqli_query($conn, $query);
-
-        while ($row = mysqli_fetch_assoc($result)) {
-            $fioDB[] = $row['FIO'];
-            $emailDB[] = $row['email'];
-            $phoneDB[] = $row['phone'];
-            $cityDB[] = $row['city'];
-        }
-    }
-    // $data = [];
-    // $data[] = ['FIO', 'Email', 'Phone', 'City'];
-    // for ($i = 0; $i < count($fioDB); $i++) {
-    //     $data[] = [$fioDB[$i], $emailDB[$i], $phoneDB[$i], $cityDB[$i]];
-    // }
-    // var_dump($data);
-}
-// $data = [];
-// $data[] = ['FIO', 'Email', 'Phone', 'City'];
-// for ($i = 0; $i < count($fioDB); $i++) {
-//     $data[] = [$fioDB[$i], $emailDB[$i], $phoneDB[$i], $cityDB[$i]];
-// }
-// echo '<pre>';
-// print_r($data);
-// echo '</pre>';
-// foreach ($data as $fields) {
-//     var_dump($fields);
-// }
-
-if (isset($_POST['export-csv'])){
-    header("Content-Type: text/csv; charset=utf-8");
-    header("Content-Disposition: attachment; filename=download.csv");
-
-    $fp = fopen('php://output', 'w');
-
-    // $list = array (
-    //     array('FIO', 'Email', 'Phone', 'City'),
-    //     array('Иванов Иван Иванович', 'Иванов Иван Иванович', 'Иванов Иван Иванович'),
-    //     array('ivanIvanov@ya.ru', 'sidorov@mail.ru'),
-    //     array('+7 950 990-00-55', '+7 999 999-99-99')
-    // );
-
-    // foreach ($list as $fields) {
-    //     fputcsv($fp, $fields, ';');
-    // }
-    setlocale(LC_ALL, 'ru_RU.CP1251');
-
-    $query = "SELECT * FROM contacts ";
-    $result = mysqli_query($conn, $query);
-
-    fputs($fp, $bom =( chr(0xEF) . chr(0xBB) . chr(0xBF) ));
-
-    while ($row = mysqli_fetch_assoc($result)) {
-        fputcsv($fp, $row, ';');
-    }
-
-    // $data = [];
-    // $data[] = ['FIO', 'Email', 'Phone', 'City'];
-    // for ($i = 0; $i < count($fioDB); $i++) {
-    //     $data[] = [$fioDB[$i], $emailDB[$i], $phoneDB[$i], $cityDB[$i]];
-    // }
-
-    // foreach ($data as $fields) {
-    //     fputcsv($fp, $fields, ';');
-    // }
-
-    fclose($fp);
-    exit();
-}
-
-$conn->close();
-
+include 'sort_data.php';
 ?>
 
 <!DOCTYPE html>
@@ -149,20 +61,9 @@ $conn->close();
             </tbody>
         </table>
 
-        <form action="" method="post">
-        <button type="submit" class="btn btn-primary" name="export-csv">Экспорт</button>
+        <form action="export_csv.php" method="post">
+            <button type="submit" class="btn btn-primary" name="export-csv">Экспорт</button>
         </form>
     </div>
-
-    <script>
-        // document.addEventListener("DOMContentLoaded", () => {
-        //     let citySelect = document.getElementById('city');
-        //     let select = document.querySelector('.citySelected').textContent;
-        //     citySelect.value = select;
-        //     console.log(select);
-        //     console.log(citySelect.value);
-        // });
-        // let btn = document.querySelector(".btn-city");
-    </script>
 </body>
 </html>

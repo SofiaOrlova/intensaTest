@@ -1,8 +1,18 @@
 <?php
+include 'config.php';
+include 'validation.php';
+session_start();
+
 $errors_email = [];
 $errors_fio = [];
 $errors_phone = [];
+$error_token = ''; 
 $success = false;
+
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = md5(uniqid(rand(), true));
+}
+$token = $_SESSION['csrf_token'];
 
 if($_SERVER["REQUEST_METHOD"] == "POST"){
     $fio = trim($_POST['inputFIO']);
@@ -10,47 +20,28 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
     $phone = trim($_POST['inputPhone']);
     $city = trim($_POST['city']);
 
-    if ($email == '') {
-        $errors_email[] = "Email не может быть пустым.";
-    }elseif(!filter_var($email, FILTER_VALIDATE_EMAIL)){
-        $errors_email[] = "Неверный формат email.";
-    }
-
-    if ($fio == '') {
-        $errors_fio[] = "ФИО не может быть пустым.";
-    } elseif (!preg_match('/^([А-Я][а-яё]{1,30})(\s[А-Я][а-яё]{1,30})*(\s)?$/u', $fio, $matches)) {
-        $errors_fio[] = "Неверное ФИО. Пример для заполнения: Иванов Иван Иванович"; 
-    }
-
-    if (strlen($phone)<16) {
-        $errors_phone[] = "Неполный номер телефона."; 
-    } elseif (!preg_match('/^\+7\s\d{3}\s\d{3}-\d{2}-\d{2}$/', $phone, $matches)) {
-        $errors_phone[] = "Неверный формат телефона."; 
-    }
-
-    $conn = new mysqli("localhost", "root", "", "intensaTestDB");
-    if ($conn == false){
-        print("Ошибка: Невозможно подключиться" . mysqli_connect_error());
-    }
+    $errors_email = validationEmail($email);
+    $errors_fio = validationFIO($fio);
+    $errors_phone = validationPhone($phone);
 
     if (empty($errors_email) && empty($errors_fio) && empty($errors_phone) && $city !== '') {
-        $sql = "INSERT INTO contacts (FIO, email, phone, city) VALUES ('$fio', '$email', '$phone', '$city')";
+        if(isset($_POST['csrf_token'])){
+            if($_POST['csrf_token'] == $_SESSION['csrf_token']){
+                $sql = "INSERT INTO contacts (FIO, email, phone, city) VALUES ('$fio', '$email', '$phone', '$city')";
+                $conn->query($sql);
 
-        $conn->query($sql);
-
-        $success = true;
-        header("Location: index.php?success=1");
-
-        // if($conn->query($sql)){
-        //     echo "Данные успешно добавлены";
-        // } else{
-        //     echo "Ошибка: " . $conn->error;
-        // }
+                $success = true;
+                header("Location: index.php?success=1");
+            } else {
+                $error_token = "Неверный токен CSRF";
+            }
+        } else {
+            $error_token = "Токен CSRF не найден";
+        }
     }
 
     $conn->close();
 }
-
 ?>
 
 <!DOCTYPE html>
@@ -86,6 +77,7 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
             Данные успешно отправлены
         </div>
         <form class="contacts" method="post">
+            <input type="hidden" name="csrf_token" value="<?php echo $token; ?>">
             <div class="mb-3">
                 <label for="inputFIO" class="form-label">ФИО</label>
                 <input type="text" class="form-control" id="inputFIO" name="inputFIO" value="<?php echo $fio ?? ''?>">
@@ -131,6 +123,10 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
                 </select>
             </div>
 
+            <div class="text-error">
+                <?php echo $error_token; ?>
+            </div>
+
             <div class="mb-3">
                 <button type="submit" class="btn btn-primary">Отправить</button>
             </div>
@@ -163,7 +159,6 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
                 inputPhone.classList.add("is-invalid");
             }
         });
-
     </script>
 </body>
 </html>
